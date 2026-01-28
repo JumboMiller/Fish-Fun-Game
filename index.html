@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Lane Runner Game</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-stats">
+            <span id="level-container">
+                <span class="level-label">⭐ Level</span>
+                <span id="level-text">1</span>
+            </span>
+            <span id="coins-container">
+                <img src="static/img/Coin.png" alt="Coins" class="coin-icon">
+                <span id="coins-text">0/20</span>
+            </span>
+            <span id="lives-container"></span>
+            <button id="stats-button" title="Player Stats">
+                <img src="static/img/Settings.png" alt="Settings" class="settings-icon">
+            </button>
+        </div>
+        <div id="game-over">
+            <h2>Game Over!</h2>
+            <p>Better luck next time!</p>
+            <button id="restart-button">Play Again</button>
+        </div>
+        <div id="game-win">
+            <h2>Victory!</h2>
+            <p id="win-message">Congratulations, you won!</p>
+            <p id="win-stats" class="win-stats"></p>
+            <button id="play-again-button">Play Again</button>
+        </div>
+        
+        <!-- Nickname Modal -->
+        <div id="nickname-modal" class="modal">
+            <div class="modal-content">
+                <h2>Welcome to Lane Runner!</h2>
+                <p>Enter your nickname to start playing</p>
+                <input type="text" id="nickname-input" placeholder="Your Nickname" maxlength="20">
+                <button id="start-game-button" class="primary-btn">Let's Go!</button>
+            </div>
+        </div>
+
+        <!-- Player Stats Modal -->
+        <div id="player-stats-modal" class="modal">
+            <div class="modal-content stats-modal">
+                <h2>🎮 Player Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">🐟 Name:</span>
+                        <span class="stat-value" id="stat-nickname">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🏆 Best Time:</span>
+                        <span class="stat-value" id="stat-best-time">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🎮 Total Games:</span>
+                        <span class="stat-value" id="stat-total-games">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">✨ Wins:</span>
+                        <span class="stat-value" id="stat-wins">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📊 Win Rate:</span>
+                        <span class="stat-value" id="stat-win-rate">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">💰 Total Coins:</span>
+                        <span class="stat-value" id="stat-total-coins">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">⭐ Max Level:</span>
+                        <span class="stat-value" id="stat-max-level">-</span>
+                    </div>
+                </div>
+                <button id="close-stats-button" class="primary-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="static/js/main.js"></script>
+</body>
+</html>
