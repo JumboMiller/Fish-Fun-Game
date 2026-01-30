@@ -1,5 +1,7 @@
 // ==================== GAME CONFIGURATION ====================
 
+import { images } from '../js/images.js';
+
 export const CONFIG = {
     CANVAS: {
         BASE_WIDTH: 400,
@@ -15,7 +17,7 @@ export const CONFIG = {
         SIZE: 86,
         STARTING_LIVES: 3,
         BOTTOM_OFFSET: 10,
-        SPRITE: 'static/img/Player.png'
+        SPRITE: images.player
     },
     GAME_OBJECT: {
         MIN_SPEED: 2,
@@ -26,25 +28,25 @@ export const CONFIG = {
         COIN: {
             value: 1,
             spawnWeight: 0.40,
-            sprite: 'static/img/Coin.png',
+            sprite: images.coin,
             size: 42
         },
         GEM: {
             value: 10,
             spawnWeight: 0.15,
-            sprite: 'static/img/Gem.png',
+            sprite: images.gem,
             size: 42
         },
         HEART: {
             value: -1,   
             spawnWeight: 0.10,
-            sprite: 'static/img/Heart.png',
+            sprite: images.heart,
             size: 38
         },
         OBSTACLE: {
             value: 0,
             spawnWeight: 0.35,
-            sprite: 'static/img/Obstenence.png',
+            sprite: images.obstacle,
             size: 58
         }
     },

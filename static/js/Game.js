@@ -1,6 +1,7 @@
-// ==================== GAME CLASS ====================
+// ==================== GAME - MAIN CONTROLLER ====================
 
 import { CONFIG } from '../config/config.js';
+import { images } from './images.js';
 import { Player } from './Player.js';
 import { GameObject } from './GameObject.js';
 import { ImageLoader } from './ImageLoader.js';
@@ -47,6 +48,10 @@ export class Game {
         this.startTime = null;
         this.gameTime = 0;
 
+        // Event handlers (для правильного удаления)
+        this.resizeHandler = null;
+        this.keyPressHandler = null;
+
         // Calculate responsive canvas size
         this.calculateCanvasSize();
         this.laneWidth = this.canvasWidth / this.config.LANES.COUNT;
@@ -84,10 +89,10 @@ export class Game {
     }
 
     setupResizeHandler() {
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
+        this.resizeTimeout = null;
+        this.resizeHandler = () => {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
                 const wasRunning = this.isRunning;
                 const wasPaused = this.isPaused;
                 
@@ -109,11 +114,14 @@ export class Game {
                     this.draw();
                 }
             }, 250);
-        });
+        };
+        window.addEventListener('resize', this.resizeHandler);
     }
 
     setupEventListeners() {
-        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+        this.keyPressHandler = (e) => this.handleKeyPress(e);
+        document.addEventListener('keydown', this.keyPressHandler);
+        
         this.restartButton.addEventListener('click', () => this.restart());
         this.playAgainButton.addEventListener('click', () => this.restart());
         this.startGameButton.addEventListener('click', () => this.handleNicknameSubmit());
@@ -212,13 +220,15 @@ export class Game {
             // Coins and Gems
             this.coins += obj.type.value;
             this.totalCoins += obj.type.value;
+            // Save coins to stats immediately
+            this.storage.addCoins(obj.type.value);
             // Create collect animation
             this.createCollectAnimation(obj.getX(), obj.y, obj.type);
             this.createCollectParticles(obj.getX(), obj.y, obj.type);
             
             // Check if level goal reached
             const currentLevelData = this.config.LEVELS[this.currentLevel - 1];
-            if (this.totalCoins >= currentLevelData.coinsToWin) {
+            if (this.coins >= currentLevelData.coinsToWin) {
                 this.levelUp();
             }
         }
@@ -331,21 +341,25 @@ export class Game {
     update() {
         if (!this.isRunning || this.isPaused) return;
 
-        // Update and check all game objects
-        for (let i = this.gameObjects.length - 1; i >= 0; i--) {
-            const obj = this.gameObjects[i];
+        // Update and check all game objects (оптимизировано - без splice)
+        const objectsToKeep = [];
+        
+        for (const obj of this.gameObjects) {
             obj.update();
 
             if (obj.isOutOfBounds(this.config.CANVAS.HEIGHT)) {
-                this.gameObjects.splice(i, 1);
-                continue;
+                continue; // Пропускаем объект вне границ
             }
 
             if (this.checkCollision(obj)) {
                 this.handleCollision(obj);
-                this.gameObjects.splice(i, 1);
+                continue; // Пропускаем объект после коллизии
             }
+            
+            objectsToKeep.push(obj);
         }
+        
+        this.gameObjects = objectsToKeep;
 
         // Randomly spawn new objects based on current level
         const levelData = this.config.LEVELS[this.currentLevel - 1];
@@ -426,7 +440,14 @@ export class Game {
     }
 
     gameLoop() {
-        if (!this.isRunning || this.isPaused) return;
+        if (!this.isRunning || this.isPaused) {
+            // Правильная отмена анимации при паузе/остановке
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+            return;
+        }
 
         this.update();
         this.draw();
@@ -440,7 +461,7 @@ export class Game {
         
         if (coinsElement) {
             const currentLevelData = this.config.LEVELS[this.currentLevel - 1];
-            coinsElement.textContent = `${this.totalCoins}/${currentLevelData.coinsToWin}`;
+            coinsElement.textContent = `${this.coins}/${currentLevelData.coinsToWin}`;
         }
         
         if (levelElement) {
@@ -452,7 +473,7 @@ export class Game {
             livesContainer.innerHTML = '';
             for (let i = 0; i < this.lives; i++) {
                 const heart = document.createElement('img');
-                heart.src = 'static/img/Heart.png';
+                heart.src = images.heart;
                 heart.alt = 'Life';
                 heart.className = 'heart-icon';
                 livesContainer.appendChild(heart);
@@ -521,7 +542,6 @@ export class Game {
 
         // Update statistics
         this.storage.incrementTotalGames();
-        this.storage.addCoins(this.totalCoins);
 
         if (isWin) {
             this.storage.incrementWins();
@@ -559,6 +579,13 @@ export class Game {
         this.coins = 0;
         this.lives = this.config.PLAYER.STARTING_LIVES;
         this.gameObjects = [];
+        
+        // Очистка массивов эффектов для предотвращения утечек памяти
+        this.particles = [];
+        this.collectAnimations = [];
+        this.screenShake = 0;
+        this.flashAlpha = 0;
+        
         this.isRunning = true;
         this.isPaused = false;
         this.startTime = Date.now();
@@ -612,9 +639,10 @@ export class Game {
     }
 
     showPlayerStats() {
-        // Auto-pause game when opening stats
+        // Save pause state and pause the game
+        this.wasPausedBeforeStats = this.isPaused;
         if (this.isRunning && !this.isPaused) {
-            this.togglePause();
+            this.isPaused = true;
         }
         
         const stats = this.storage.getAllStats();
@@ -634,9 +662,52 @@ export class Game {
 
     hidePlayerStats() {
         this.playerStatsModal.classList.remove('active');
+        
+        // Resume game only if it wasn't paused before opening stats
+        if (this.isRunning && !this.wasPausedBeforeStats) {
+            this.isPaused = false;
+            this.gameLoop();
+        }
     }
 
     async start() {
         await this.initialize();
+    }
+
+    // Метод для очистки ресурсов и предотвращения утечек памяти
+    destroy() {
+        // Отмена анимационного цикла
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
+        // Удаление event listeners
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
+        
+        if (this.keyPressHandler) {
+            document.removeEventListener('keydown', this.keyPressHandler);
+            this.keyPressHandler = null;
+        }
+        
+        // Очистка таймаутов
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = null;
+        }
+        
+        // Очистка всех массивов
+        this.gameObjects = [];
+        this.particles = [];
+        this.collectAnimations = [];
+        
+        // Обнуление ссылок
+        this.player = null;
+        this.imageLoader = null;
+        
+        console.log('Game resources cleaned up');
     }
 }
